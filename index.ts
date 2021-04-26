@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
 
-import { Graph } from "./graph";
+import { Graph } from "./graph";
 import { Test } from './test';
 
 /**
@@ -27,7 +27,9 @@ abstract class ThirdPartyApiClient {
 
 interface Post {
   id: number;
-  // TODO: Implement the rest.
+  userId: number;
+  title: string;
+  body: string;
 }
 
 class PostsApi extends ThirdPartyApiClient {
@@ -36,12 +38,33 @@ class PostsApi extends ThirdPartyApiClient {
   ): Promise<void> {
     // How to implement: Use node-fetch to fetch posts from the API, iterate through them and call the callback
     // with each and every post.
+    const posts: Post[] = await (await fetch(this.withBaseUrl('/posts'))).json()
+    posts.forEach(post => callback(post))
   }
 }
 
 interface User {
   id: number;
-  // TODO: Implement the rest.
+  name: string;
+  username: string,
+  email: string;
+  address: {
+    street: string;
+    suite: string;
+    city: string;
+    zipcode: string;
+    geo: {
+      lat: string;
+      lng: string;
+    }
+  }
+  phone: string;
+  website: string;
+  company: {
+    name: string;
+    catchPhrase: string;
+    bs: string;
+  }
 }
 
 class UsersApi extends ThirdPartyApiClient {
@@ -50,6 +73,8 @@ class UsersApi extends ThirdPartyApiClient {
   ): Promise<void> {
     // How to implement: Use node-fetch to fetch users from the API, iterate through them and call the callback
     // with each and every user.
+    const users: User[] = await (await fetch(this.withBaseUrl('/users'))).json()
+    users.forEach(user => callback(user))
   }
 }
 
@@ -70,11 +95,18 @@ const getPostId = (post: Post) => `post:${post.id}`;
 
   // How to implement: following the code above, turn users into entities 
   await usersApi.iterateUsers(async (user: User) => {
+    graph.createEntity(getUserId(user), 'User', user)
   });
 
   // How to implement: following the code above, turn posts into entities 
   await postsApi.iteratePosts(async (post: Post) => {
     // After creating posts entities, build the relationships between posts and the (owner) users
+    const postEntity = graph.createEntity(getPostId(post), 'Post', post)
+    const userEntity = graph.findEntityById(`user:${post.userId}`)
+
+    if (userEntity) {
+      graph.createRelationship(userEntity, postEntity, 'HAS')
+    }
   });
 
   // *** TESTS, don't touch ***
